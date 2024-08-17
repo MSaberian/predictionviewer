@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutureU</title>
+    <style>
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        #controls-container div {
+            margin-bottom: 10px;
+        }
+
+        #data-list-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <canvas></canvas>
+    <div id="app"></div>
+    <div id="controls-container">
+        <!-- Existing controls -->
+        <div>
+            <input type="range" id="massMorphSlider" min="0" max="100" value="0">
+            <span id="massMorphValue">0</span>
+        </div>
+        <div>
+            <input type="range" id="toneMorphSlider" min="0" max="100" value="0">
+            <span id="toneMorphValue">0</span>
+        </div>
+        <div>
+            Fat: <span id="fatValue">0</span>
+        </div>
+        <div>
+            Muscle: <span id="muscleValue">0</span>
+        </div>
+        <div>
+            Weight: <span id="weightValue">0</span>
+        </div>
+        <div>
+            <input type="checkbox" id="animationToggle" checked>
+            <label for="animationToggle">Play Animation</label>
+        </div>
+        <div>
+            <input type="checkbox" id="wireframeView">
+            <label for="wireframeView">Wireframe View</label>
+        </div>
+        <div>
+            <input type="range" id="roughnessSlider" min="0" max="1" step="0.01" value="1.0">
+            <label for="roughnessSlider">Roughness</label>
+            <span id="roughnessValue">1.0</span>
+        </div>
+        <div>
+            <input type="range" id="metallicSlider" min="0" max="1" step="0.01" value="0.5">
+            <label for="metallicSlider">Metallic</label>
+            <span id="metallicValue">0.5</span>
+        </div>
+        <div>
+            <input type="color" id="albedoColorPicker" value="#535353">
+            <label for="albedoColorPicker">Albedo Color</label>
+        </div>
+        <div>
+            <input type="range" id="grayScaleSlider" min="0" max="1" step="0.01" value="0.75">
+            <label for="grayScaleSlider">Gray Scale</label>
+            <span id="grayScaleValue">0.75</span>
+        </div>
+        <div>
+            <input type="checkbox" id="textureToggle">
+            <label for="textureToggle">Add Texture</label>
+        </div>
+    </div>
+    <div id="data-list-container">
+        <div>
+            <button id="loadDataButton">Load Data</button>
+        </div>
+        <div id="dataList">
+            <!-- Data list will be populated here -->
+        </div>
+    </div>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script type="module" src="./scenes/viewerScene.js"></script>
+</body>
+</html>

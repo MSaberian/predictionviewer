@@ -1,0 +1,5 @@
+# Ignore node_modules directory (for Node.js projects)
+node_modules/
+
+# Ignore gltfs
+*.gltf

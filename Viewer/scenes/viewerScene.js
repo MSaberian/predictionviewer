@@ -1,3 +1,6 @@
+import { interpolate } from "d3";
+import fs from 'fs';
+
 async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender = "m", initMass = 0.00, initTone = 0.09) {
     const { Vector3, Scene, MeshBuilder, StandardMaterial, Color3, ArcRotateCamera, DirectionalLight, CubeTexture, ShadowGenerator, SceneLoader, MorphTargetManager, Texture } = BABYLON;
 
@@ -164,130 +167,6 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
         const config = await fetch(`./${userId}_gltfs/weights_mass_tone_ranges.json`).then(res => res.json());
         const gltfMeshes = await setupMorphTargets(initialMesh, config, morphTargetManager);
 
-        // async function setupMorphTargets(mesh, config, morphTargetManager) {
-        //     let promises = config.mass_tone_weight_combination.map(async ([mass, tone, weight]) => {
-        //         let filename = `${userId}_mass_${mass.toFixed(2)}_tone_${tone.toFixed(2)}_weight_${weight.toFixed(2)}.gltf`;
-        //         try {
-        //             const result = await SceneLoader.ImportMeshAsync("", `./${userId}_gltfs/`, filename, scene);
-        //             const morphTarget = new BABYLON.MorphTarget(`morph_${mass.toFixed(2)}_${tone.toFixed(2)}_${weight.toFixed(2)}`);
-        //             const originalPositions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-        //             const newMesh = result.meshes.reduce((maxMesh, currentMesh) => {
-        //                 const maxVerticesCount = maxMesh.getTotalVertices();
-        //                 const currentVerticesCount = currentMesh.getTotalVertices();
-        //                 return currentVerticesCount > maxVerticesCount ? currentMesh : maxMesh;
-        //             }, result.meshes[0]);
-
-        //             const newPositions = newMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-        //             if (originalPositions.length !== newPositions.length) {
-        //                 console.error("Vertex count mismatch. Expected:", originalPositions.length / 3, "Got:", newPositions.length / 3);
-        //                 return;
-        //             }
-
-        //             morphTarget.setPositions(newPositions);
-        //             morphTargetManager.addTarget(morphTarget);
-
-        //             result.meshes.forEach(m => {
-        //                 m.position.y += 0.1;
-        //                 m.material = characterMaterial; // Use the character material for these meshes
-        //                 m.isVisible = false;
-        //                 shadowGenerator.getShadowMap().renderList.push(m);
-        //             });
-
-        //             return {
-        //                 mass,
-        //                 tone,
-        //                 meshes: result.meshes
-        //             };
-        //         } catch (err) {
-        //             console.error("Failed to fetch or process morph target data:", err);
-        //         }
-        //     });
-
-        //     const gltfMeshes = await Promise.all(promises);
-        //     console.log("All morph targets processed.");
-
-        //     for (let i = 0; i < morphTargetManager.numTargets; i++) {
-        //         morphTargetManager.getTarget(i).influence = 0;
-        //     }
-
-        //     initialMesh.isVisible = true;
-        //     updateMorphTargets(parseFloat(initMass), parseFloat(initTone), morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes);
-        //     await updateDisplayValues(parseFloat(initMass), parseFloat(initTone), config);
-
-        //     return gltfMeshes;
-        // }
-        // async function setupMorphTargets(mesh, config, morphTargetManager) {
-        //     const massRange = [
-        //         Math.min(...config.mass_tone_weight_combination.map(d => d[0])),
-        //         Math.max(...config.mass_tone_weight_combination.map(d => d[0]))
-        //     ];
-
-        //     const toneRange = [
-        //         Math.min(...config.mass_tone_weight_combination.map(d => d[1])),
-        //         Math.max(...config.mass_tone_weight_combination.map(d => d[1]))
-        //     ];
-
-        //     // Filter to only include the combinations at the ends of the mass and tone ranges
-        //     const edgeCombinations = config.mass_tone_weight_combination.filter(([mass, tone]) => {
-        //         return (mass === massRange[0] || mass === massRange[1]) &&
-        //                (tone === toneRange[0] || tone === toneRange[1]);
-        //     });
-
-        //     let promises = edgeCombinations.map(async ([mass, tone, weight]) => {
-        //         let filename = `${userId}_mass_${mass.toFixed(2)}_tone_${tone.toFixed(2)}_weight_${weight.toFixed(2)}.gltf`;
-        //         try {
-        //             const result = await SceneLoader.ImportMeshAsync("", `./${userId}_gltfs/`, filename, scene);
-        //             const morphTarget = new BABYLON.MorphTarget(`morph_${mass.toFixed(2)}_${tone.toFixed(2)}_${weight.toFixed(2)}`);
-        //             const originalPositions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-        //             const newMesh = result.meshes.reduce((maxMesh, currentMesh) => {
-        //                 const maxVerticesCount = maxMesh.getTotalVertices();
-        //                 const currentVerticesCount = currentMesh.getTotalVertices();
-        //                 return currentVerticesCount > maxVerticesCount ? currentMesh : maxMesh;
-        //             }, result.meshes[0]);
-
-        //             const newPositions = newMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-        //             if (originalPositions.length !== newPositions.length) {
-        //                 console.error("Vertex count mismatch. Expected:", originalPositions.length / 3, "Got:", newPositions.length / 3);
-        //                 return;
-        //             }
-
-        //             morphTarget.setPositions(newPositions);
-        //             morphTargetManager.addTarget(morphTarget);
-
-        //             result.meshes.forEach(m => {
-        //                 m.position.y += 0.1;
-        //                 m.material = characterMaterial; // Use the character material for these meshes
-        //                 m.isVisible = false;
-        //                 shadowGenerator.getShadowMap().renderList.push(m);
-        //             });
-
-        //             return {
-        //                 mass,
-        //                 tone,
-        //                 meshes: result.meshes
-        //             };
-        //         } catch (err) {
-        //             console.error("Failed to fetch or process morph target data:", err);
-        //         }
-        //     });
-
-        //     const gltfMeshes = await Promise.all(promises);
-        //     console.log("Selected edge morph targets processed.");
-
-        //     for (let i = 0; i < morphTargetManager.numTargets; i++) {
-        //         morphTargetManager.getTarget(i).influence = 0;
-        //     }
-
-        //     initialMesh.isVisible = true;
-        //     updateMorphTargets(parseFloat(initMass), parseFloat(initTone), morphTargetManager, initialMesh, edgeCombinations, gltfMeshes);
-        //     await updateDisplayValues(parseFloat(initMass), parseFloat(initTone), config);
-
-        //     return gltfMeshes;
-        // }
 
         async function setupMorphTargets(mesh, config, morphTargetManager) {
             let promises = config.mass_tone_weight_combination.map(([mass, tone, weight]) => {
@@ -370,18 +249,46 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             return data;
         }
 
+        // function interpolatedBasedOnMass(d0, d1, initialMesh, initialTon){
+        //     var result = Object.assign({}, d0);
+        //     result.mass = initialMesh;
+        //     result.tone = initialTon;
+        //     result.fat = (Math.abs()*d0.fat + Math.abs()*d1.fat) / Math.abs(d0.mass - d1.mass)
+        // }
+
         function interpolateValues(data, massValue, toneValue) {
-            const points = data.map(d => ({
-                mass: d.mass,
-                tone: d.tone,
-                fat: d.fat,
-                muscle: d.muscle,
-                weight: d.weight,
+            const massesArray = Array.from(new Set( data.map(item => item.mass).sort()));
+            const tonesArray = Array.from(new Set(data.map(item => item.tone).sort()));
+
+            let tone0=-1, tone1=-1;
+            for (let i = 0; i < tonesArray.length - 1; i++) 
+                if (toneValue >= tonesArray[i] && toneValue <= tonesArray[i + 1]) {
+                    tone0 = tonesArray[i];
+                    tone1 = tonesArray[i+1];
+                    break;
+                }    
+
+            let mass0=-1, mass1=-1;
+            for (let i = 0; i < massesArray.length - 1; i++) 
+                if (massValue >= massesArray[i] && massValue <= massesArray[i + 1]) {
+                    mass0 = massesArray[i];
+                    mass1 = massesArray[i+1];
+                    break;
+                }
+
+            const interpoletedPoints = data.filter(c=> (c.mass == mass0 && c.tone == tone0) || (c.mass == mass0 && c.tone == tone1) || 
+            (c.mass == mass1 && c.tone == tone0) || (c.mass == mass1 && c.tone == tone1));
+            
+            // const massPoints1 = data.filter(c=> (c.mass == mass0 && c.tone == tone0));
+            // const massPoints2 = data.filter(c=> (c.mass == mass1 && c.tone == tone0));
+
+            let nearestPoints = interpoletedPoints.map(d => ({
+                ...d, 
                 distance: Math.sqrt(Math.pow(d.mass - massValue, 2) + Math.pow(d.tone - toneValue, 2))
             }));
 
-            points.sort((a, b) => a.distance - b.distance);
-            const nearestPoints = points.slice(0, 4);
+            nearestPoints.sort((a, b) => a.distance - b.distance);
+            //const nearestPoints = points.slice(0, 3);
 
             if (nearestPoints.length === 0) {
                 return { fat: NaN, muscle: NaN, weight: NaN };
@@ -395,14 +302,20 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                 };
             }
 
-            const totalWeight = nearestPoints.reduce((acc, point) => acc + (1 / point.distance || 0), 0);
+            const totalWeight = nearestPoints.reduce((acc, point) => acc + (1 / point.distance || 1), 0);
+            nearestPoints = nearestPoints.map(d => ({
+                ...d, 
+                effect: ((1 / d.distance || 1) /totalWeight)
+            }));
+            
+
             let interpolatedFat = 0, interpolatedMuscle = 0, interpolatedWeight = 0;
 
             nearestPoints.forEach(point => {
-                const weight = (1 / point.distance || 0) / totalWeight;
-                interpolatedFat += point.fat * weight;
-                interpolatedMuscle += point.muscle * weight;
-                interpolatedWeight += point.weight * weight;
+                //const weight = (1 / point.distance || 0) / totalWeight;
+                interpolatedFat += point.fat * point.effect;
+                interpolatedMuscle += point.muscle * point.effect;
+                interpolatedWeight += point.weight * point.effect;
             });
 
             if (interpolatedFat + interpolatedMuscle > interpolatedWeight) {
@@ -410,6 +323,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                 const ratio = interpolatedWeight / total;
                 interpolatedFat *= ratio;
                 interpolatedMuscle *= ratio;
+                console.error("weight kuchiktareeeeee vaveylaaa");
             }
 
             return {
@@ -469,8 +383,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             }
         }
 
-
-
+        
         function setupSliders(config, morphTargetManager, initialMesh, gltfMeshes) {
             const massSlider = document.getElementById('massMorphSlider');
             const toneSlider = document.getElementById('toneMorphSlider');
@@ -494,6 +407,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                 massValueDisplay.textContent = massValue.toFixed(2);
                 updateMorphTargets(massValue, parseFloat(toneValueDisplay.textContent), morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes);
                 updateDisplayValues(massValue, parseFloat(toneValueDisplay.textContent), config);
+
             });
 
             toneSlider.addEventListener('input', function () {
@@ -592,14 +506,14 @@ document.addEventListener('DOMContentLoaded', () => {
             "06": { gender: "f", initMass: 0.00, initTone: 0.00 },
             "07": { gender: "f", initMass: 0.00, initTone: -0.54 },
             "08": { gender: "f", initMass: 0.00, initTone: -0.39 },
-            "shams": { gender: "m", initMass: 0.00, initTone: 0.09 },
+            "shams": { gender: "m", initMass: 0.00, initTone: 0.00 },
             "payman": { gender: "m", initMass: 0.00, initTone: 0.00 },
-            "kafashi": { gender: "m", initMass: 0.07, initTone: -0.02 },
+            "kafashi": { gender: "m", initMass: 0.24, initTone: 0.24 },
             "nakhaei": { gender: "m", initMass: 0.60, initTone: 0.00 },
             "hashemi": { gender: "m", initMass: 0.24, initTone: 0.00 },
             "feyzi": { gender: "m", initMass: 0.20, initTone: 0.00 },
             "ensafiniya": { gender: "m", initMass: 0.24, initTone: 0.00 },
-            "altafi": { gender: "m", initMass: 0.00, initTone: 0.09 },
+            "altafi": { gender: "m", initMass: 0.2, initTone: 0.00 },
         };
 
         const userConfig = defaultValues[userId] || { gender: "m", initMass: 0.00, initTone: 0.09 };

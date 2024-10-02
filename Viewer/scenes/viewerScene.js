@@ -249,12 +249,23 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             return data;
         }
 
-        // function interpolatedBasedOnMass(d0, d1, initialMesh, initialTon){
-        //     var result = Object.assign({}, d0);
-        //     result.mass = initialMesh;
-        //     result.tone = initialTon;
-        //     result.fat = (Math.abs()*d0.fat + Math.abs()*d1.fat) / Math.abs(d0.mass - d1.mass)
-        // }
+        function interpolatedBasedOnMass(d0, d1, massValue, tonValue){
+            var result = Object.assign({}, d0);
+            result.mass = massValue;
+            result.tone = tonValue;
+            result.fat = ((Math.abs(massValue - d1.mass)*d0.fat) + (Math.abs(massValue-d0.mass)*d1.fat))/Math.abs(d0.mass - d1.mass);
+            result.muscle = ((Math.abs(massValue - d1.mass)*d0.muscle) + (Math.abs(massValue-d0.mass)*d1.muscle)) / Math.abs(d0.mass - d1.mass);
+            result.weight = ((Math.abs(massValue - d1.mass)*d0.weight) + (Math.abs(massValue-d0.mass)*d1.weight)) / Math.abs(d0.mass - d1.mass);
+            return result;
+        }
+        function interpolatedBasedOnTone(d0, d1, tonValue){
+            var result = Object.assign({}, d0);
+            result.tone = tonValue;
+            result.fat = (Math.abs(tonValue - d1.tone)*d0.fat + Math.abs(tonValue-d0.tone)*d1.fat) / Math.abs(d0.tone - d1.tone)
+            result.muscle = (Math.abs(tonValue - d1.tone)*d0.muscle + Math.abs(tonValue-d0.tone)*d1.muscle) / Math.abs(d0.tone - d1.tone)
+            result.weight = (Math.abs(tonValue - d1.tone)*d0.weight + Math.abs(tonValue-d0.tone)*d1.weight) / Math.abs(d0.tone - d1.tone)
+            return result;
+        }
 
         function interpolateValues(data, massValue, toneValue) {
             const massesArray = Array.from(new Set( data.map(item => item.mass).sort()));
@@ -276,47 +287,53 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                     break;
                 }
 
-            const interpoletedPoints = data.filter(c=> (c.mass == mass0 && c.tone == tone0) || (c.mass == mass0 && c.tone == tone1) || 
-            (c.mass == mass1 && c.tone == tone0) || (c.mass == mass1 && c.tone == tone1));
+            const massPoints1 = data.find(c=> (c.mass == mass0 && c.tone == tone0));
+            const massPoints2 = data.find(c=> (c.mass == mass1 && c.tone == tone0));
+            const interPointMass0 = interpolatedBasedOnMass(massPoints1, massPoints2, massValue , tone0);
+
+            const massPoints3 = data.find(c=> (c.mass == mass0 && c.tone == tone1));
+            const massPoints4 = data.find(c=> (c.mass == mass1 && c.tone == tone1));
+            const interPointMass1 = interpolatedBasedOnMass(massPoints3, massPoints4, massValue , tone1);
+
+            const interPointTone = interpolatedBasedOnTone(interPointMass0, interPointMass1, toneValue);
             
-            // const massPoints1 = data.filter(c=> (c.mass == mass0 && c.tone == tone0));
-            // const massPoints2 = data.filter(c=> (c.mass == mass1 && c.tone == tone0));
-
-            let nearestPoints = interpoletedPoints.map(d => ({
-                ...d, 
-                distance: Math.sqrt(Math.pow(d.mass - massValue, 2) + Math.pow(d.tone - toneValue, 2))
-            }));
-
-            nearestPoints.sort((a, b) => a.distance - b.distance);
-            //const nearestPoints = points.slice(0, 3);
-
-            if (nearestPoints.length === 0) {
-                return { fat: NaN, muscle: NaN, weight: NaN };
-            }
-
-            if (nearestPoints[0].distance === 0) {
-                return {
-                    fat: nearestPoints[0].fat,
-                    muscle: nearestPoints[0].muscle,
-                    weight: nearestPoints[0].weight
-                };
-            }
-
-            const totalWeight = nearestPoints.reduce((acc, point) => acc + (1 / point.distance || 1), 0);
-            nearestPoints = nearestPoints.map(d => ({
-                ...d, 
-                effect: ((1 / d.distance || 1) /totalWeight)
-            }));
-            
-
             let interpolatedFat = 0, interpolatedMuscle = 0, interpolatedWeight = 0;
+             interpolatedFat = interPointTone.fat;
+             interpolatedMuscle = interPointTone.muscle;
+             interpolatedWeight = interPointTone.weight;
+             
+            // const interpoletedPoints = data.filter(c=> (c.mass == mass0 && c.tone == tone0) || (c.mass == mass0 && c.tone == tone1) || 
+            // (c.mass == mass1 && c.tone == tone0) || (c.mass == mass1 && c.tone == tone1));
+            // let nearestPoints = interpoletedPoints.map(d => ({
+            //     ...d, 
+            //     distance: Math.sqrt(Math.pow(d.mass - massValue, 2) + Math.pow(d.tone - toneValue, 2))
+            // }));
 
-            nearestPoints.forEach(point => {
-                //const weight = (1 / point.distance || 0) / totalWeight;
-                interpolatedFat += point.fat * point.effect;
-                interpolatedMuscle += point.muscle * point.effect;
-                interpolatedWeight += point.weight * point.effect;
-            });
+            // nearestPoints.sort((a, b) => a.distance - b.distance);
+
+            // if (nearestPoints.length === 0) {
+            //     return { fat: NaN, muscle: NaN, weight: NaN };
+            // }
+
+            // if (nearestPoints[0].distance === 0) {
+            //     return {
+            //         fat: nearestPoints[0].fat,
+            //         muscle: nearestPoints[0].muscle,
+            //         weight: nearestPoints[0].weight
+            //     };
+            // }
+
+            // const totalWeight = nearestPoints.reduce((acc, point) => acc + (1 / point.distance || 1), 0);
+            // nearestPoints = nearestPoints.map(d => ({
+            //     ...d, 
+            //     effect: ((1 / d.distance || 1) /totalWeight)
+            // }));
+            
+            // nearestPoints.forEach(point => {
+            //     interpolatedFat += point.fat * point.effect;
+            //     interpolatedMuscle += point.muscle * point.effect;
+            //     interpolatedWeight += point.weight * point.effect;
+            // });
 
             if (interpolatedFat + interpolatedMuscle > interpolatedWeight) {
                 const total = interpolatedFat + interpolatedMuscle;
@@ -510,9 +527,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "payman": { gender: "m", initMass: 0.00, initTone: 0.00 },
             "kafashi": { gender: "m", initMass: 0.24, initTone: 0.24 },
             "nakhaei": { gender: "m", initMass: 0.60, initTone: 0.00 },
-            "hashemi": { gender: "m", initMass: 0.24, initTone: 0.00 },
+            "hashemi": { gender: "m", initMass: 1.0, initTone: 0.19 },
             "feyzi": { gender: "m", initMass: 0.20, initTone: 0.00 },
-            "ensafiniya": { gender: "m", initMass: 0.24, initTone: 0.00 },
+            "ensafiniya": { gender: "m", initMass: 0.07, initTone: -0.02 },
             "altafi": { gender: "m", initMass: 0.2, initTone: 0.00 },
         };
 

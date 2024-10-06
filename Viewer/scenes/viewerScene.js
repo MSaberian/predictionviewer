@@ -400,15 +400,15 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             }
         }
 
-        
+        let massRange = [], toneRange=[];
         function setupSliders(config, morphTargetManager, initialMesh, gltfMeshes) {
             const massSlider = document.getElementById('massMorphSlider');
             const toneSlider = document.getElementById('toneMorphSlider');
             const massValueDisplay = document.getElementById('massMorphValue');
             const toneValueDisplay = document.getElementById('toneMorphValue');
 
-            const massRange = [Math.min(...config.mass_tone_weight_combination.map(d => d[0])), Math.max(...config.mass_tone_weight_combination.map(d => d[0]))];
-            const toneRange = [Math.min(...config.mass_tone_weight_combination.map(d => d[1])), Math.max(...config.mass_tone_weight_combination.map(d => d[1]))];
+            massRange = [Math.min(...config.mass_tone_weight_combination.map(d => d[0])), Math.max(...config.mass_tone_weight_combination.map(d => d[0]))];
+            toneRange = [Math.min(...config.mass_tone_weight_combination.map(d => d[1])), Math.max(...config.mass_tone_weight_combination.map(d => d[1]))];
 
             massSlider.value = ((initMass - massRange[0]) / (massRange[1] - massRange[0])) * 100;
             toneSlider.value = ((initTone - toneRange[0]) / (toneRange[1] - toneRange[0])) * 100;

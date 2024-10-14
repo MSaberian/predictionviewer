@@ -314,7 +314,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             // if (nearestPoints.length === 0) {
             //     return { fat: NaN, muscle: NaN, weight: NaN };
             // }
-
+            // test
             // if (nearestPoints[0].distance === 0) {
             //     return {
             //         fat: nearestPoints[0].fat,

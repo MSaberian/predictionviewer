@@ -12,5 +12,5 @@ const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 0, 0), c
 
 await main(BABYLON, engine, currentScene)
 
-
+// test
 

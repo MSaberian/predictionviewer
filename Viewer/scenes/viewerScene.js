@@ -94,8 +94,6 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
     setupColorPicker(scanMaterial, characterMaterial);
     setupGrayScaleSlider(scanMaterial, characterMaterial, 0.75);
 
-    
-
     function setupMaterialSliders(scanMaterial, characterMaterial) {
         const roughnessSlider = document.getElementById('roughnessSlider');
         const roughnessValueDisplay = document.getElementById('roughnessValue');
@@ -167,8 +165,10 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
         initialMesh.morphTargetManager = morphTargetManager;
 
         const config = await fetch(`./${userId}_gltfs/weights_mass_tone_ranges.json`).then(res => res.json());
-        const targets = setupTargets(morphTargetManager) ;
-        const gltfMeshes = await setupMorphTargets(initialMesh, config, morphTargetManager, targets);
+        const targets = setupTargets(morphTargetManager);
+        console.log("targets:", targets);
+        const data = await fetchData();
+        const gltfMeshes = await setupMorphTargets(initialMesh, config, morphTargetManager, targets, data);
         
         function setupTargets(morphTargetManager) {
             let targets = [];
@@ -180,7 +180,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             return targets;
         }
 
-        async function setupMorphTargets(mesh, config, morphTargetManager, targets) {
+        async function setupMorphTargets(mesh, config, morphTargetManager, targets, data) {
             let promises = config.mass_tone_weight_combination.map(([mass, tone, weight]) => {
                 let filename = `${userId}_mass_${mass.toFixed(2)}_tone_${tone.toFixed(2)}_weight_${weight.toFixed(2)}.gltf`;
                 return SceneLoader.ImportMeshAsync("", `./${userId}_gltfs/`, filename, scene)
@@ -372,38 +372,61 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             document.getElementById('weightValue').textContent = interpolatedValues.weight.toFixed(2);
         }
 
-        function updateMorphTargets(massValue, toneValue, morphTargetManager, mesh, combinations, targets) {
+        function findNearestPoints(xArray, xValue) {
+            let x0=-1, x1=-1;
+            for (let i = 0; i < xArray.length - 1; i++) 
+                if (xValue >= xArray[i] && xValue <= xArray[i + 1]) {
+                    x0 = xArray[i];
+                    x1 = xArray[i+1];
+                    return [x0, x1];
+                }
+            return [x0, x1];
+        }
+
+        async function updateMorphTargets(massValue, toneValue, morphTargetManager, mesh, combinations, targets) {
+            const data = await fetchData();
             if (morphTargetManager && morphTargetManager.numTargets > 0) {
+                const massesArray = Array.from(new Set(data.map(item => item.mass).sort()));
+                const tonesArray = Array.from(new Set(data.map(item => item.tone).sort()));
                 let targets = [];
 
                 for (let i = 0; i < morphTargetManager.numTargets; i++) {
+                // for (let i = 0; i < 4; i++) {
                     const target = morphTargetManager.getTarget(i);
                     const [morphMass, morphTone] = target.name.split('_').slice(1, 3).map(Number);
                     targets.push({ index: i, mass: morphMass, tone: morphTone });
                 }
-                
-                // let mass0=-1, mass1=-1;
-                // for (let i = 0; i < massesArray.length - 1; i++) 
-                //     if (massValue >= massesArray[i] && massValue <= massesArray[i + 1]) {
-                //         mass0 = massesArray[i];
-                //         mass1 = massesArray[i+1];
-                //         break;
+
+                // const masss = findNearestPoints(massesArray, massValue);
+                // const tones = findNearestPoints(tonesArray, toneValue);
+
+                // for (const mass of masss){
+                //     for (const tone of tones){
+                //         targets.push({index: targets.length, mass: mass, tone: tone});                        
                 //     }
-    
-                // let tone0=-1, tone1=-1;
-                // for (let i = 0; i < tonesArray.length - 1; i++) 
-                //     if (toneValue >= tonesArray[i] && toneValue <= tonesArray[i + 1]) {
-                //         tone0 = tonesArray[i];
-                //         tone1 = tonesArray[i+1];
-                //         break;
-                //     }    
+                // }
+                // console.log("masss:", masss);
+                // console.log("tones:", tones);
+                // // targets = [];
+                // console.log("targets:", targets);
 
                 let influences = targets.map(target => {
-                    const distance = Math.sqrt(Math.pow(massValue - target.mass, 2) + Math.pow(toneValue - target.tone, 2));
-                    const weight = Math.exp(-distance * 10);
+                    let distance;
+                    if (Math.abs(massValue - target.mass) >= 0.2 || Math.abs(toneValue - target.tone) >= 0.15){
+                        distance = 1000000000;
+                    }
+                    else{
+                        distance = Math.sqrt(Math.pow((massValue - target.mass)/0.2, 2) + Math.pow((toneValue - target.tone)/0.15, 2));
+                            if (distance==0) {
+                            distance = 0.000000001;
+                        }
+                    }
+                    // const weight = Math.exp(-distance * 10);
+                    const weight = 0.2/distance;
                     return { ...target, weight };
                 });
 
+                console.log("influences:", influences);
                 const totalWeight = influences.reduce((sum, target) => sum + target.weight, 0);
                 influences = influences.map(target => ({ ...target, influence: target.weight / totalWeight }));
 
@@ -430,7 +453,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
         }
 
         let massRange = [], toneRange=[];
-        function setupSliders(config, morphTargetManager, initialMesh, gltfMeshes) {
+        function setupSliders(config, morphTargetManager, initialMesh, gltfMeshes, targets) {
             const massSlider = document.getElementById('massMorphSlider');
             const toneSlider = document.getElementById('toneMorphSlider');
             const massValueDisplay = document.getElementById('massMorphValue');
@@ -483,7 +506,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             });
         }
 
-        setupSliders(config, morphTargetManager, initialMesh, gltfMeshes);
+        setupSliders(config, morphTargetManager, initialMesh, gltfMeshes, targets);
         setupLightingAndShadows(BABYLON, directionalLight, shadowGenerator, scene);
         setupCheckboxes(initialMesh);
         setupCheckboxes(scan);

@@ -94,6 +94,8 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
     setupColorPicker(scanMaterial, characterMaterial);
     setupGrayScaleSlider(scanMaterial, characterMaterial, 0.75);
 
+    
+
     function setupMaterialSliders(scanMaterial, characterMaterial) {
         const roughnessSlider = document.getElementById('roughnessSlider');
         const roughnessValueDisplay = document.getElementById('roughnessValue');
@@ -165,10 +167,20 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
         initialMesh.morphTargetManager = morphTargetManager;
 
         const config = await fetch(`./${userId}_gltfs/weights_mass_tone_ranges.json`).then(res => res.json());
-        const gltfMeshes = await setupMorphTargets(initialMesh, config, morphTargetManager);
+        const targets = setupTargets(morphTargetManager) ;
+        const gltfMeshes = await setupMorphTargets(initialMesh, config, morphTargetManager, targets);
+        
+        function setupTargets(morphTargetManager) {
+            let targets = [];
+            for (let i = 0; i < morphTargetManager.numTargets; i++) {
+                const target = morphTargetManager.getTarget(i);
+                const [morphMass, morphTone] = target.name.split('_').slice(1, 3).map(Number);
+                targets.push({ index: i, mass: morphMass, tone: morphTone });
+            }
+            return targets;
+        }
 
-
-        async function setupMorphTargets(mesh, config, morphTargetManager) {
+        async function setupMorphTargets(mesh, config, morphTargetManager, targets) {
             let promises = config.mass_tone_weight_combination.map(([mass, tone, weight]) => {
                 let filename = `${userId}_mass_${mass.toFixed(2)}_tone_${tone.toFixed(2)}_weight_${weight.toFixed(2)}.gltf`;
                 return SceneLoader.ImportMeshAsync("", `./${userId}_gltfs/`, filename, scene)
@@ -206,10 +218,10 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             for (let i = 0; i < morphTargetManager.numTargets; i++) {
                 morphTargetManager.getTarget(i).influence = 0;
             }
-
+            setupSliders
             // Set the initial visibility of the mesh
             mesh.isVisible = true;
-            updateMorphTargets(initMass, initTone, morphTargetManager, mesh, config.mass_tone_weight_combination);
+            updateMorphTargets(initMass, initTone, morphTargetManager, mesh, config.mass_tone_weight_combination, targets);
             await updateDisplayValues(initMass, initTone, config);
         }
 
@@ -271,6 +283,14 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             const massesArray = Array.from(new Set( data.map(item => item.mass).sort()));
             const tonesArray = Array.from(new Set(data.map(item => item.tone).sort()));
 
+            let mass0=-1, mass1=-1;
+            for (let i = 0; i < massesArray.length - 1; i++) 
+                if (massValue >= massesArray[i] && massValue <= massesArray[i + 1]) {
+                    mass0 = massesArray[i];
+                    mass1 = massesArray[i+1];
+                    break;
+                }
+
             let tone0=-1, tone1=-1;
             for (let i = 0; i < tonesArray.length - 1; i++) 
                 if (toneValue >= tonesArray[i] && toneValue <= tonesArray[i + 1]) {
@@ -279,13 +299,6 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                     break;
                 }    
 
-            let mass0=-1, mass1=-1;
-            for (let i = 0; i < massesArray.length - 1; i++) 
-                if (massValue >= massesArray[i] && massValue <= massesArray[i + 1]) {
-                    mass0 = massesArray[i];
-                    mass1 = massesArray[i+1];
-                    break;
-                }
 
             const massPoints1 = data.find(c=> (c.mass == mass0 && c.tone == tone0));
             const massPoints2 = data.find(c=> (c.mass == mass1 && c.tone == tone0));
@@ -353,13 +366,13 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
         async function updateDisplayValues(massValue, toneValue, config) {
             const data = await fetchData();
             const interpolatedValues = interpolateValues(data, massValue, toneValue);
-
+            
             document.getElementById('fatValue').textContent = interpolatedValues.fat.toFixed(2);
             document.getElementById('muscleValue').textContent = interpolatedValues.muscle.toFixed(2);
             document.getElementById('weightValue').textContent = interpolatedValues.weight.toFixed(2);
         }
 
-        function updateMorphTargets(massValue, toneValue, morphTargetManager, mesh, combinations) {
+        function updateMorphTargets(massValue, toneValue, morphTargetManager, mesh, combinations, targets) {
             if (morphTargetManager && morphTargetManager.numTargets > 0) {
                 let targets = [];
 
@@ -368,6 +381,22 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                     const [morphMass, morphTone] = target.name.split('_').slice(1, 3).map(Number);
                     targets.push({ index: i, mass: morphMass, tone: morphTone });
                 }
+                
+                // let mass0=-1, mass1=-1;
+                // for (let i = 0; i < massesArray.length - 1; i++) 
+                //     if (massValue >= massesArray[i] && massValue <= massesArray[i + 1]) {
+                //         mass0 = massesArray[i];
+                //         mass1 = massesArray[i+1];
+                //         break;
+                //     }
+    
+                // let tone0=-1, tone1=-1;
+                // for (let i = 0; i < tonesArray.length - 1; i++) 
+                //     if (toneValue >= tonesArray[i] && toneValue <= tonesArray[i + 1]) {
+                //         tone0 = tonesArray[i];
+                //         tone1 = tonesArray[i+1];
+                //         break;
+                //     }    
 
                 let influences = targets.map(target => {
                     const distance = Math.sqrt(Math.pow(massValue - target.mass, 2) + Math.pow(toneValue - target.tone, 2));
@@ -416,21 +445,20 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             massValueDisplay.textContent = initMass.toFixed(2);
             toneValueDisplay.textContent = initTone.toFixed(2);
 
-            updateMorphTargets(initMass, initTone, morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes);
+            updateMorphTargets(initMass, initTone, morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes, targets);
             updateDisplayValues(initMass, initTone, config);
 
             massSlider.addEventListener('input', function () {
                 const massValue = parseFloat(this.value) / 100 * (massRange[1] - massRange[0]) + massRange[0];
                 massValueDisplay.textContent = massValue.toFixed(2);
-                updateMorphTargets(massValue, parseFloat(toneValueDisplay.textContent), morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes);
+                updateMorphTargets(massValue, parseFloat(toneValueDisplay.textContent), morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes, targets);
                 updateDisplayValues(massValue, parseFloat(toneValueDisplay.textContent), config);
-
             });
 
             toneSlider.addEventListener('input', function () {
                 const toneValue = parseFloat(this.value) / 100 * (toneRange[1] - toneRange[0]) + toneRange[0];
                 toneValueDisplay.textContent = toneValue.toFixed(2);
-                updateMorphTargets(parseFloat(massValueDisplay.textContent), toneValue, morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes);
+                updateMorphTargets(parseFloat(massValueDisplay.textContent), toneValue, morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes, targets);
                 updateDisplayValues(parseFloat(massValueDisplay.textContent), toneValue, config);
             });
         }

@@ -299,9 +299,15 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                     break;
                 }    
 
-
+            console.log("massesArray:", massesArray);
+            console.log("mass0:", mass0);
+            console.log("mass1:", mass1);
+            console.log("massValue:", massValue);
+            console.log("toneValue:", mass1);
+            
             const massPoints1 = data.find(c=> (c.mass == mass0 && c.tone == tone0));
             const massPoints2 = data.find(c=> (c.mass == mass1 && c.tone == tone0));
+            console.log("massPoints2:", massPoints2);
             const interPointMass0 = interpolatedBasedOnMass(massPoints1, massPoints2, massValue , tone0);
 
             const massPoints3 = data.find(c=> (c.mass == mass0 && c.tone == tone1));
@@ -389,7 +395,8 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
                 const massesArray = Array.from(new Set(data.map(item => item.mass).sort()));
                 const tonesArray = Array.from(new Set(data.map(item => item.tone).sort()));
                 let targets = [];
-
+                console.log("massesArray[0]:", massesArray[0]*1000000000000000);
+                console.log("tonesArray:", tonesArray);
                 for (let i = 0; i < morphTargetManager.numTargets; i++) {
                 // for (let i = 0; i < 4; i++) {
                     const target = morphTargetManager.getTarget(i);
@@ -412,17 +419,15 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
 
                 let influences = targets.map(target => {
                     let distance;
-                    if (Math.abs(massValue - target.mass) >= 0.2 || Math.abs(toneValue - target.tone) >= 0.15){
-                        distance = 1000000000;
-                    }
-                    else{
+                    let weight = 0;
+                    if (Math.abs(massValue - target.mass) < 0.2 && Math.abs(toneValue - target.tone) < 0.15){
                         distance = Math.sqrt(Math.pow((massValue - target.mass)/0.2, 2) + Math.pow((toneValue - target.tone)/0.15, 2));
-                            if (distance==0) {
+                        if (distance==0) {
                             distance = 0.000000001;
                         }
+                        weight = 0.2/distance;
                     }
                     // const weight = Math.exp(-distance * 10);
-                    const weight = 0.2/distance;
                     return { ...target, weight };
                 });
 
@@ -459,9 +464,9 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
             const massValueDisplay = document.getElementById('massMorphValue');
             const toneValueDisplay = document.getElementById('toneMorphValue');
 
-            massRange = [Math.min(...config.mass_tone_weight_combination.map(d => d[0])), Math.max(...config.mass_tone_weight_combination.map(d => d[0]))];
-            toneRange = [Math.min(...config.mass_tone_weight_combination.map(d => d[1])), Math.max(...config.mass_tone_weight_combination.map(d => d[1]))];
-
+            massRange = [parseFloat(Math.min(...config.mass_tone_weight_combination.map(d => d[0])).toFixed(2)), parseFloat(Math.max(...config.mass_tone_weight_combination.map(d => d[0])).toFixed(2))];
+            toneRange = [parseFloat(Math.min(...config.mass_tone_weight_combination.map(d => d[1])).toFixed(2)), parseFloat(Math.max(...config.mass_tone_weight_combination.map(d => d[1])).toFixed(2))];
+            debugger;
             massSlider.value = ((initMass - massRange[0]) / (massRange[1] - massRange[0])) * 100;
             toneSlider.value = ((initTone - toneRange[0]) / (toneRange[1] - toneRange[0])) * 100;
 
@@ -470,10 +475,16 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
 
             updateMorphTargets(initMass, initTone, morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes, targets);
             updateDisplayValues(initMass, initTone, config);
+            
+            console.log("massSlider.value:", massSlider.value);
 
             massSlider.addEventListener('input', function () {
+                // console.log("this.value:", this.value);
+                // debugger;
                 const massValue = parseFloat(this.value) / 100 * (massRange[1] - massRange[0]) + massRange[0];
+                // console.log("massValue:", massValue);
                 massValueDisplay.textContent = massValue.toFixed(2);
+                // console.log("textContent:", massValueDisplay.textContent );
                 updateMorphTargets(massValue, parseFloat(toneValueDisplay.textContent), morphTargetManager, initialMesh, config.mass_tone_weight_combination, gltfMeshes, targets);
                 updateDisplayValues(massValue, parseFloat(toneValueDisplay.textContent), config);
             });

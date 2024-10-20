@@ -1,7 +1,7 @@
 import { interpolate } from "d3";
 import fs from 'fs';
 
-async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender = "m", initMass = 0.00, initTone = 0.09) {
+async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender = "m") {
     const { Vector3, Scene, MeshBuilder, StandardMaterial, Color3, ArcRotateCamera, DirectionalLight, CubeTexture, ShadowGenerator, SceneLoader, MorphTargetManager, Texture } = BABYLON;
 
     const scene = new Scene(engine);
@@ -49,11 +49,14 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
 
     createCylinder("cylinder_top_scan", 2, 0.2, new Vector3(-scanOffset / 2, 0.1, 0), scene);
     createCylinder("cylinder_bottom_scan", 3, 0.1, new Vector3(-scanOffset / 2, 0, 0), scene);
-
+    const config = await fetch(`./${userId}_gltfs/weights_mass_tone_ranges.json`).then(res => res.json());
+    let initMass = config["initial_mass"]
+    let initTone = config["initial_tone"]
     const gltf_name = `${userId}_initial_mass_${parseFloat(initMass).toFixed(2)}_tone_${parseFloat(initTone).toFixed(2)}`;
 
     const userInitResult = await SceneLoader.ImportMeshAsync("", `./${userId}_gltfs/`, `${gltf_name}.gltf`, scene);
     let initialMesh;
+
     if (gender === "m") {
         initialMesh = userInitResult.meshes.find((m) => m.name === "m_ca01");
         initialMesh.isVisible = true;
@@ -164,7 +167,6 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
         const morphTargetManager = new MorphTargetManager();
         initialMesh.morphTargetManager = morphTargetManager;
 
-        const config = await fetch(`./${userId}_gltfs/weights_mass_tone_ranges.json`).then(res => res.json());
         const targets = setupTargets(morphTargetManager);
         console.log("targets:", targets);
         const data = await fetchData();
@@ -466,7 +468,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
 
             massRange = [parseFloat(Math.min(...config.mass_tone_weight_combination.map(d => d[0])).toFixed(2)), parseFloat(Math.max(...config.mass_tone_weight_combination.map(d => d[0])).toFixed(2))];
             toneRange = [parseFloat(Math.min(...config.mass_tone_weight_combination.map(d => d[1])).toFixed(2)), parseFloat(Math.max(...config.mass_tone_weight_combination.map(d => d[1])).toFixed(2))];
-            debugger;
+            
             massSlider.value = ((initMass - massRange[0]) / (massRange[1] - massRange[0])) * 100;
             toneSlider.value = ((initTone - toneRange[0]) / (toneRange[1] - toneRange[0])) * 100;
 
@@ -577,30 +579,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const defaultValues = {
-            "01": { gender: "f", initMass: 0.00, initTone: 0.00 },
-            "02": { gender: "f", initMass: 0.00, initTone: 0.00 },
-            "03": { gender: "f", initMass: -0.18, initTone: 0.03 },
-            "04": { gender: "f", initMass: 0.00, initTone: 0.72 },
-            "05": { gender: "f", initMass: -0.09, initTone: -0.57 },
-            "06": { gender: "f", initMass: 0.00, initTone: 0.00 },
-            "07": { gender: "f", initMass: 0.00, initTone: -0.54 },
-            "08": { gender: "f", initMass: 0.00, initTone: -0.39 },
-            "shams": { gender: "m", initMass: 0.00, initTone: 0.00 },
-            "payman": { gender: "m", initMass: 0.00, initTone: 0.00 },
-            "kafashi": { gender: "m", initMass: 0.24, initTone: 0.24 },
-            "nakhaei": { gender: "m", initMass: 0.60, initTone: 0.00 },
-            "hashemi": { gender: "m", initMass: 1.0, initTone: 0.19 },
-            "feyzi": { gender: "m", initMass: 0.20, initTone: 0.00 },
-            "ensafiniya": { gender: "m", initMass: 0.07, initTone: -0.02 },
+            "01": { gender: "f"},
+            "02": { gender: "f"},
+            "03": { gender: "f"},
+            "04": { gender: "f"},
+            "05": { gender: "f"},
+            "06": { gender: "f"},
+            "07": { gender: "f"},
+            "08": { gender: "f"},
+            "shams": { gender: "m"},
+            "payman": { gender: "m"},
+            "kafashi": { gender: "m"},
+            "nakhaei": { gender: "m"},
+            "hashemi": { gender: "m"},
+            "feyzi": { gender: "m"},
+            "ensafiniya": { gender: "m"},
             "altafi": { gender: "m", initMass: 0.2, initTone: 0.00 },
         };
 
-        const userConfig = defaultValues[userId] || { gender: "m", initMass: 0.00, initTone: 0.09 };
-        const { gender, initMass, initTone } = userConfig;
+        const userConfig = defaultValues[userId] || { gender: "m"};
+        const { gender } = userConfig;
 
         const engine = new BABYLON.Engine(document.querySelector('canvas'), true);
 
-        viewerScene(BABYLON, engine, window.currentScene, document.querySelector('canvas'), userId, gender, initMass, initTone)
+        viewerScene(BABYLON, engine, window.currentScene, document.querySelector('canvas'), userId, gender)
             .then(scene => {
                 window.currentScene = scene;
             })

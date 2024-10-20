@@ -31,6 +31,7 @@ async function viewerScene(BABYLON, engine, currentScene, canvas, userId, gender
     camera.upperRadiusLimit = 10;
     camera.wheelPrecision = 30;
     camera.minZ = 0.01;
+    //fasdfa
 
     scene.createDefaultEnvironment({
         skyboxColor: new Color3(0.8, 0.8, 0.8),
